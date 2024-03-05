@@ -1,7 +1,10 @@
 import React from 'react';
 import Plot from 'react-plotly.js';
 
-const ViolinPlot = ({data}) => {
+const ViolinPlot = ( {data} ) => {
+
+    console.log(data)
+
     const trace1 = {
         type: 'violin',
         x: data.map(d => d.emotion_1_id),

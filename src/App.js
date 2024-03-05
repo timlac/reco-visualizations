@@ -1,10 +1,10 @@
 import './App.css';
-import ViolinPlot from "./components/ViolinPlot";
+import {Visualize} from "./components/Visualize";
 
 function App() {
   return (
       <div className="App">
-          <ViolinPlot/>
+          <Visualize/>
       </div>
   );
 }
