@@ -1,59 +1,28 @@
-import React from 'react';
-import {Bubble} from 'react-chartjs-2';
-import {
-    Chart as ChartJS,
-    CategoryScale,
-    LinearScale,
-    PointElement,
-    Tooltip,
-    Legend
-} from 'chart.js';
+import React, {useMemo} from 'react';
+import {Scatter} from 'react-chartjs-2';
+import 'chart.js/auto';
 
-ChartJS.register(
-    CategoryScale,
-    LinearScale,
-    PointElement,
-    Tooltip,
-    Legend
-);
+export const EmotionScatterPlot = ({ data }) => {
+    const chartData = useMemo(() => {
+        // Group data points by emotion
+        const groupedData = data.reduce((acc, d) => {
+            // Find the existing group for this emotion or create a new one
+            let group = acc.find(item => item.label === d.emotion);
+            if (!group) {
+                group = { label: d.emotion, data: [], pointRadius: [] }
+                    // backgroundColor: /* logic to assign color based on emotion */, };
+                acc.push(group);
+            }
 
-const BubbleChart = ({data}) => {
-    const options = {
-        scales: {
-            x: {
-                title: {
-                    display: true,
-                    text: 'Dimension 1',
-                },
-                ticks: {
-                    stepSize: 1,
-                    callback: function (value) {
-                        if (value % 1 === 0) {
-                            return value;
-                        }
-                    }
+            // Apply jitter here or assume it's already applied in 'x' and 'y'
+            group.data.push({ x: d.x, y: d.y });
+            group.pointRadius.push(Math.sqrt(d.count) * 10);  // Use scaled count for point size
 
-                }
-            },
-            y: {
-                title: {
-                    display: true,
-                    text: 'Dimension 2',
-                },
-                ticks: {
-                    stepSize: 1,
-                    callback: function (value) {
-                        if (value % 1 === 0) {
-                            return value;
-                        }
-                    }
+            return acc;
+        }, []);
 
-                }
-            },
-        },
-    };
+        return { datasets: groupedData };
+    }, [data]);
 
-    return <Bubble data={data} options={options}/>;
+    return <Scatter data={chartData} />;
 };
-
-export default BubbleChart;
