@@ -1,10 +1,10 @@
 import './App.css';
-import MyComponent from "./components/MyComponent";
+import ViolinPlot from "./components/ViolinPlot";
 
 function App() {
   return (
       <div className="App">
-          <MyComponent></MyComponent>
+          <ViolinPlot/>
       </div>
   );
 }
