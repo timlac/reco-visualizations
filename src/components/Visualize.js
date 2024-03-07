@@ -4,6 +4,7 @@ import { getEmotionFromId } from "nexa-js-sentimotion-mapper";
 import {parseCSV} from "../services/parseCsv";
 import {EmotionSelect} from "./EmotionSelect";
 import {getUniqueEmotions} from "../services/getUniqueEmotions";
+import {AxisSelect} from "./AxisSelect";
 
 export const Visualize = () => {
     const [rawData, setRawdata] = useState([])
@@ -88,6 +89,8 @@ export const Visualize = () => {
                 emotions={uniqueEmotions}
                 onEmotionChange={handleEmotionChange}>
             </EmotionSelect> }
+
+            {/*<AxisSelect selectedAxes={selectedAxes} availableAxes={} onAxisChange={}></AxisSelect>*/}
 
             {processedData.length > 0 && <EmotionScatterPlot data={processedData} emotions={selectedEmotions} />}
         </div>
