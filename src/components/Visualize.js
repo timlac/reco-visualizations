@@ -1,47 +1,71 @@
 import { useEffect, useState } from "react";
-import Papa from "papaparse";
 import { EmotionScatterPlot } from "./ScatterDisplay";
 import { getEmotionFromId } from "nexa-js-sentimotion-mapper";
+import {parseCSV} from "../services/parseCsv";
+import {EmotionSelect} from "./EmotionSelect";
+import {getUniqueEmotions} from "../services/getUniqueEmotions";
 
 export const Visualize = () => {
-    const [data, setData] = useState([]);
+    const [rawData, setRawdata] = useState([])
+    const [filteredData, setFilteredData] = useState([])
+
     const [processedData, setProcessedData] = useState([]);
+    const [uniqueEmotions, setUniqueEmotions] = useState([])
+    const [selectedEmotions, setSelectedEmotions] = useState([]); // New state for selected emotions
+
+
+    const [selectedAxes, setSelectedAxes] = useState({ x: 'novelty', y: 'pleasantness' }); // Default axes
+
 
     useEffect(() => {
-        // Fetch and parse CSV data
-        Papa.parse('/export_appraisal.csv', {
-            download: true,
-            header: true,
-            complete: (result) => {
-                const transformedData = result.data.map(row => ({
-                    ...row,
-                    emotion: getEmotionFromId(row.emotion_1_id)
-                }));
-                setData(transformedData);
-            }
-        });
+        const fetchData = async () => {
+            const rawData = await parseCSV('/export_appraisal.csv');
+            const transformedData = transformData(rawData);
+            setRawdata(transformedData)
+            setFilteredData(transformedData)
+
+            const allEmotions = getUniqueEmotions(transformedData)
+            setUniqueEmotions(allEmotions)
+
+            setSelectedEmotions(allEmotions)
+
+        };
+        fetchData();
     }, []);
 
-    // "peacefulness_serenity"
-
-    // Separate useEffect for counting and applying jitter
     useEffect(() => {
-        const emotionsToInclude = ['positive_surprise',
- 'relief',
- 'anger',
- 'guilt',
- 'negative_surprise',
-];
+        const countedData = countEmotions(filteredData)
+        const jitteredData = applyJitter(countedData);
+        setProcessedData(jitteredData);
+    }, [filteredData]);
 
-        // Aggregate data to count occurrences and filter by emotions
-        const countsMap = new Map();
-        data.filter(row => emotionsToInclude.includes(row.emotion)).forEach(row => {
+    const transformData = (rawData) => rawData.map(row => ({
+        ...row,
+        emotion: getEmotionFromId(row.emotion_1_id)
+    }));
+
+    // Handler function to update selectedEmotions
+    const handleEmotionChange = (newSelectedEmotions) => {
+        console.log("rawdata", rawData)
+        console.log("selected emotions", newSelectedEmotions)
+        setSelectedEmotions(newSelectedEmotions);
+        setFilteredData(filterDataByEmotions(rawData, newSelectedEmotions))
+    };
+
+    const filterDataByEmotions = (data, emotionsToInclude) => {
+        console.log(emotionsToInclude)
+        console.log(data)
+        return data.filter(row => emotionsToInclude.includes(row.emotion));
+    }
+
+    const countEmotions = (filteredData) => {
+        const countsMap = filteredData.reduce((acc, row) => {
             const key = `${row.emotion}-${row.reply_dim_Novelty}-${row.reply_dim_Pleasantness}`;
-            countsMap.set(key, (countsMap.get(key) || 0) + 1);
-        });
+            acc.set(key, (acc.get(key) || 0) + 1);
+            return acc;
+        }, new Map());
 
-        // Convert countsMap to array and include count in each object
-        const withCounts = Array.from(countsMap, ([key, count]) => {
+        return Array.from(countsMap, ([key, count]) => {
             const [emotion, reply_dim_Novelty, reply_dim_Pleasantness] = key.split('-');
             return {
                 emotion,
@@ -50,22 +74,22 @@ export const Visualize = () => {
                 count
             };
         });
+    };
 
-        console.log(withCounts)
-
-        // Apply jitter here if you want to keep it separate from the count logic
-        const withJitter = withCounts.map(d => ({
-            ...d,
-            x: d.reply_dim_Novelty + Math.random() * 0.3 - 0.15,
-            y: d.reply_dim_Pleasantness + Math.random() * 0.3 - 0.15,
-        }));
-
-        setProcessedData(withJitter);
-    }, [data]); // This effect runs when `data` changes
+    const applyJitter = (countedData) => countedData.map(d => ({
+        ...d,
+        x: d.reply_dim_Novelty + Math.random() * 0.3 - 0.15,
+        y: d.reply_dim_Pleasantness + Math.random() * 0.3 - 0.15,
+    }));
 
     return (
         <div>
-            {processedData.length > 0 && <EmotionScatterPlot data={processedData}/>}
+            {uniqueEmotions.length > 0 && <EmotionSelect
+                emotions={uniqueEmotions}
+                onEmotionChange={handleEmotionChange}>
+            </EmotionSelect> }
+
+            {processedData.length > 0 && <EmotionScatterPlot data={processedData} emotions={selectedEmotions} />}
         </div>
     );
 };
