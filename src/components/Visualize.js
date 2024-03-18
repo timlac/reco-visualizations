@@ -1,35 +1,34 @@
 import { useEffect, useState } from "react";
 import { EmotionScatterPlot } from "./ScatterDisplay";
 import { getEmotionFromId } from "nexa-js-sentimotion-mapper";
-import {parseCSV} from "../services/parseCsv";
+import {getCsvData, parseCSV} from "../services/parseCsv";
 import {EmotionSelect} from "./EmotionSelect";
 import {getUniqueEmotions} from "../services/getUniqueEmotions";
 import {AxisSelect} from "./AxisSelect";
 
 export const Visualize = () => {
-    const [rawData, setRawdata] = useState([])
+    const [data, setData] = useState([])
     const [filteredData, setFilteredData] = useState([])
 
     const [processedData, setProcessedData] = useState([]);
     const [uniqueEmotions, setUniqueEmotions] = useState([])
     const [selectedEmotions, setSelectedEmotions] = useState([]); // New state for selected emotions
 
-
     const [selectedAxes, setSelectedAxes] = useState({ x: 'novelty', y: 'pleasantness' }); // Default axes
 
 
     useEffect(() => {
         const fetchData = async () => {
-            const rawData = await parseCSV('/export_appraisal.csv');
-            const transformedData = transformData(rawData);
-            setRawdata(transformedData)
-            setFilteredData(transformedData)
+            const csvData = await getCsvData('/export_appraisal.csv');
 
-            const allEmotions = getUniqueEmotions(transformedData)
+            console.log(csvData)
+            setData(csvData)
+            setFilteredData(csvData)
+
+            const allEmotions = getUniqueEmotions(csvData)
             setUniqueEmotions(allEmotions)
 
             setSelectedEmotions(allEmotions)
-
         };
         fetchData();
     }, []);
@@ -40,22 +39,14 @@ export const Visualize = () => {
         setProcessedData(jitteredData);
     }, [filteredData]);
 
-    const transformData = (rawData) => rawData.map(row => ({
-        ...row,
-        emotion: getEmotionFromId(row.emotion_1_id)
-    }));
 
     // Handler function to update selectedEmotions
     const handleEmotionChange = (newSelectedEmotions) => {
-        console.log("rawdata", rawData)
-        console.log("selected emotions", newSelectedEmotions)
         setSelectedEmotions(newSelectedEmotions);
-        setFilteredData(filterDataByEmotions(rawData, newSelectedEmotions))
+        setFilteredData(filterDataByEmotions(data, newSelectedEmotions))
     };
 
     const filterDataByEmotions = (data, emotionsToInclude) => {
-        console.log(emotionsToInclude)
-        console.log(data)
         return data.filter(row => emotionsToInclude.includes(row.emotion));
     }
 

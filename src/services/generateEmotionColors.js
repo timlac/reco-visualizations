@@ -1,9 +1,6 @@
 import { getValenceFromEmotion } from "nexa-js-sentimotion-mapper";
 
 export function generateEmotionColors(emotions) {
-
-
-
     // Retrieve valence for each emotion and store in an object
     const valences = emotions.reduce((acc, emotion) => {
         acc[emotion] = getValenceFromEmotion(emotion);
