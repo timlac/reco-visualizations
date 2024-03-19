@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { EmotionScatterPlot } from "./ScatterDisplay";
 import { getEmotionFromId } from "nexa-js-sentimotion-mapper";
-import {getCsvData, parseCSV} from "../services/parseCsv";
+import {parseCSV} from "../services/parseCsv";
 import {EmotionSelect} from "./EmotionSelect";
 import {getUniqueEmotions} from "../services/getUniqueEmotions";
 import {AxisSelect} from "./AxisSelect";
@@ -19,9 +19,8 @@ export const Visualize = () => {
 
     useEffect(() => {
         const fetchData = async () => {
-            const csvData = await getCsvData('/export_appraisal.csv');
+            const csvData = await parseCSV('/export_appraisal.csv');
 
-            console.log(csvData)
             setData(csvData)
             setFilteredData(csvData)
 
@@ -47,12 +46,12 @@ export const Visualize = () => {
     };
 
     const filterDataByEmotions = (data, emotionsToInclude) => {
-        return data.filter(row => emotionsToInclude.includes(row.emotion));
+        return data.filter(row => emotionsToInclude.includes(row.emotion_1));
     }
 
     const countEmotions = (filteredData) => {
         const countsMap = filteredData.reduce((acc, row) => {
-            const key = `${row.emotion}-${row.reply_dim_Novelty}-${row.reply_dim_Pleasantness}`;
+            const key = `${row.emotion_1}-${row.reply_dim_Novelty}-${row.reply_dim_Pleasantness}`;
             acc.set(key, (acc.get(key) || 0) + 1);
             return acc;
         }, new Map());
@@ -63,6 +62,7 @@ export const Visualize = () => {
                 emotion,
                 reply_dim_Novelty: parseFloat(reply_dim_Novelty),
                 reply_dim_Pleasantness: parseFloat(reply_dim_Pleasantness),
+                // number of occurrences
                 count
             };
         });
