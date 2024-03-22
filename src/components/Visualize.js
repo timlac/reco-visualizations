@@ -1,6 +1,5 @@
 import {useEffect, useState} from "react";
 import {EmotionScatterPlot} from "./ScatterDisplay";
-import {getEmotionFromId} from "nexa-js-sentimotion-mapper";
 import {parseCSV} from "../services/parseCsv";
 import {EmotionSelect} from "./EmotionSelect";
 import {getUniqueEmotions} from "../services/getUniqueEmotions";
@@ -16,7 +15,7 @@ export const Visualize = () => {
     const [selectedEmotions, setSelectedEmotions] = useState([]); // New state for selected emotions
     const [availableAxes, setAvailableAxes] = useState([]);
 
-    const [selectedAxes, setSelectedAxes] = useState({x: 'novelty', y: 'pleasantness'}); // Default axes
+    const [selectedAxes, setSelectedAxes] = useState({}); // Default axes
 
 
     useEffect(() => {
@@ -38,7 +37,7 @@ export const Visualize = () => {
 
     useEffect(() => {
         const transformed = transformData(filteredData)
-        const aggregated = aggregateData(transformed, {x: availableAxes[0], y: availableAxes[1]})
+        const aggregated = aggregateData(transformed, selectedAxes)
         console.log("aggregated: ", aggregated)
 
         const jittered = applyJitter(aggregated)
@@ -46,7 +45,28 @@ export const Visualize = () => {
 
         setProcessedData(jittered)
 
-    }, [availableAxes, filteredData]);
+    }, [selectedAxes, filteredData]);
+
+    useEffect(() => {
+        if (availableAxes.length > 0 && (!selectedAxes.x || !selectedAxes.y)) {
+            setSelectedAxes({x: availableAxes[0], y: availableAxes[1]});
+        }
+    }, [availableAxes]);
+
+    const onAxisChange = (axisType, value) => {
+        setSelectedAxes(prevAxes => {
+            if (prevAxes[axisType] === value) {
+                // If the value isn't changing, return the previous state to avoid triggering an update
+                return prevAxes;
+            }
+
+            // Only update the state if there's a change
+            return {
+                ...prevAxes,
+                [axisType]: value
+            };
+        });
+    };
 
     // Handler function to update selectedEmotions
     const handleEmotionChange = (newSelectedEmotions) => {
@@ -99,15 +119,18 @@ export const Visualize = () => {
     }));
 
     return (
-        <div>
+        <div style={{width: '80%', height: '80%', margin: 'auto'}}>
             {uniqueEmotions.length > 0 && <EmotionSelect
                 emotions={uniqueEmotions}
                 onEmotionChange={handleEmotionChange}>
             </EmotionSelect>}
 
-            {/*<AxisSelect selectedAxes={selectedAxes} availableAxes={} onAxisChange={}></AxisSelect>*/}
+                {processedData.length > 0 && <EmotionScatterPlot data={processedData} emotions={selectedEmotions}
+                                                                 selectAxes={selectedAxes}/>}
 
-            {processedData.length > 0 && <EmotionScatterPlot data={processedData} emotions={selectedEmotions}/>}
+            <AxisSelect selectedAxes={selectedAxes} availableAxes={availableAxes}
+                        onAxisChange={onAxisChange}></AxisSelect>
+
         </div>
     );
 };

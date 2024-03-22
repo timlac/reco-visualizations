@@ -3,9 +3,10 @@ import 'chart.js/auto';
 import {useEffect, useState} from "react";
 import {generateEmotionColors} from "../services/generateEmotionColors";
 
-export const EmotionScatterPlot = ({ data, emotions }) => {
+export const EmotionScatterPlot = ({ data, emotions, selectAxes }) => {
 
     const [chartData, setChartData] = useState({ datasets: [] });
+    const [chartOptions, setChartOptions] = useState({});
 
     useEffect(() => {
         const emotionColors = generateEmotionColors(emotions)
@@ -25,8 +26,39 @@ export const EmotionScatterPlot = ({ data, emotions }) => {
             setChartData({ datasets: groupedData });
         };
 
-        updateChartData();
-    }, [data, emotions]);
+                // Set chart options, including scales and labels
+        const updateChartOptions = () => {
+            setChartOptions({
+                scales: {
+                    x: {
+                        title: {
+                            display: true,
+                            text: selectAxes.x, // Customize it as needed
+                        }
+                    },
+                    y: {
+                        title: {
+                            display: true,
+                            text: selectAxes.y, // Customize it as needed
+                        }
+                    }
+                },
+                plugins: {
+                    legend: {
+                        display: true, // Set to false if you don't want to display legend
+                        position: 'top', // Position of the legend
+                    },
+                    tooltip: {
+                        enabled: true, // Enable/disable tooltips
+                    },
+                },
+            });
+        };
 
-    return <Scatter data={chartData} />;
+        updateChartData();
+        updateChartOptions();
+
+    }, [data, emotions, selectAxes]);
+
+    return <Scatter data={chartData} options={chartOptions} />;
 };
