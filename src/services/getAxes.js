@@ -1,5 +1,5 @@
 
-function getAxes(csvData){
+export function getAxes(csvData){
 
    // Assuming the first row contains headers
     const headers = csvData.length > 0 ? Object.keys(csvData[0]) : [];
