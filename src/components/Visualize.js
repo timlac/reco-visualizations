@@ -1,18 +1,25 @@
 import {useEffect, useState} from "react";
-import {EmotionScatterPlot} from "./ScatterDisplay";
+import {ScatterDisplay} from "./ScatterDisplay";
 import {parseCSV} from "../services/parseCsv";
-import {EmotionSelect} from "./EmotionSelect";
-import {getUniqueEmotions} from "../services/getUniqueEmotions";
+import {MultipleSelect} from "./MultipleSelect";
+import {getUniqueInstances} from "../services/getUniqueInstances";
 import {AxisSelect} from "./AxisSelect";
-import {getAxes} from "../services/getAxes";
+import {getHeaders, getAxes} from "../services/getHeaders";
+import {aggregateData} from "../services/aggregateData";
 
 export const Visualize = () => {
+
+    const [filterOn, setFilterOn] = useState(["emotion_1", "emotion_2"])
+
+    const [headers, setHeaders] = useState([])
+
     const [data, setData] = useState([])
+    const [dataWithFilterOn, setDataWithFilterOn] = useState([])
     const [filteredData, setFilteredData] = useState([])
 
     const [processedData, setProcessedData] = useState([]);
-    const [uniqueEmotions, setUniqueEmotions] = useState([])
-    const [selectedEmotions, setSelectedEmotions] = useState([]); // New state for selected emotions
+    const [uniqueInstances, setUniqueInstances] = useState([])
+    const [selectedInstances, setSelectedInstances] = useState([]); // New state for selected emotions
     const [availableAxes, setAvailableAxes] = useState([]);
 
     const [selectedAxes, setSelectedAxes] = useState({}); // Default axes
@@ -20,31 +27,31 @@ export const Visualize = () => {
 
     useEffect(() => {
         const fetchData = async () => {
-            const csvData = await parseCSV('/export_appraisal.csv');
-
+            const csvData = await parseCSV('/export_mixed.csv');
             setData(csvData)
-            setFilteredData(csvData)
-
-            const allEmotions = getUniqueEmotions(csvData)
-            setUniqueEmotions(allEmotions)
-
-            setSelectedEmotions(allEmotions)
-
+            setHeaders(getHeaders(csvData))
             setAvailableAxes(getAxes(csvData))
         };
         fetchData();
     }, []);
 
+
     useEffect(() => {
-        const transformed = transformData(filteredData)
-        const aggregated = aggregateData(transformed, selectedAxes)
-        console.log("aggregated: ", aggregated)
+        const newData = data.map(row => ({
+            ...row,
+            filterColumn: filterOn.map(key => row[key]).join('-')
+        }))
+        setDataWithFilterOn(newData)
+        setFilteredData(newData)
 
-        const jittered = applyJitter(aggregated)
-        console.log("jittered: ", jittered)
+        let uniqueInstances = getUniqueInstances(newData)
+        setUniqueInstances(uniqueInstances)
+        setSelectedInstances(uniqueInstances)
+    }, [data, filterOn])
 
-        setProcessedData(jittered)
 
+    useEffect(() => {
+        setProcessedData(aggregateData(filteredData, selectedAxes, true))
     }, [selectedAxes, filteredData]);
 
     useEffect(() => {
@@ -69,64 +76,42 @@ export const Visualize = () => {
     };
 
     // Handler function to update selectedEmotions
-    const handleEmotionChange = (newSelectedEmotions) => {
-        setSelectedEmotions(newSelectedEmotions);
-        setFilteredData(filterDataByEmotions(data, newSelectedEmotions))
+    const handleInstanceChange = (newSelectedInstances) => {
+        setSelectedInstances(newSelectedInstances);
+        setFilteredData(filterDataByInstances(dataWithFilterOn, newSelectedInstances))
     };
 
-    const filterDataByEmotions = (data, emotionsToInclude) => {
-        return data.filter(row => emotionsToInclude.includes(row.emotion_1));
+    const handleFilterOnChange = (newSelectedHeaders) => {
+        setFilterOn(newSelectedHeaders)
     }
 
-
-    const transformData = (rawData) => {
-        return rawData.map(row => ({
-            ...row,
-            dimensions: availableAxes.reduce((acc, axis) => {
-                // Parse each dimension value as a float and add it to the 'dimensions' object
-                acc[axis] = parseFloat(row[axis]);
-                return acc;
-            }, {})
-        }));
-    };
-
-    const aggregateData = (data, selectedDimensions) => {
-
-        console.log(selectedDimensions)
-
-        const countsMap = new Map();
-
-        data.forEach(item => {
-            const emotion = item.emotion_1
-            const dimensionX = item.dimensions[selectedDimensions.x];
-            const dimensionY = item.dimensions[selectedDimensions.y];
-            const key = `${emotion}-${dimensionX}-${dimensionY}`;
-
-            if (!countsMap.has(key)) {
-                countsMap.set(key, {emotion: emotion, count: 0, x: dimensionX, y: dimensionY});
-            }
-
-            countsMap.get(key).count += 1;
-        });
-
-        return Array.from(countsMap.values());
-    };
-
-    const applyJitter = (countedData) => countedData.map(d => ({
-        ...d,
-        x: d.x + Math.random() * 0.3 - 0.15,
-        y: d.y + Math.random() * 0.3 - 0.15,
-    }));
+    const filterDataByInstances = (data, instancesToInclude) => {
+        return data.filter(row => instancesToInclude.includes(row.filterColumn));
+    }
 
     return (
         <div style={{width: '80%', height: '80%', margin: 'auto'}}>
-            {uniqueEmotions.length > 0 && <EmotionSelect
-                emotions={uniqueEmotions}
-                onEmotionChange={handleEmotionChange}>
-            </EmotionSelect>}
 
-                {processedData.length > 0 && <EmotionScatterPlot data={processedData} emotions={selectedEmotions}
-                                                                 selectAxes={selectedAxes}/>}
+            <p>Select columns to aggregate by</p>
+
+            {headers.length > 0 && <MultipleSelect
+                selectionOptions={headers}
+                onChange={handleFilterOnChange}
+                defaultValue={filterOn}>
+            </MultipleSelect>}
+
+            <p>Select categories to display</p>
+
+            {uniqueInstances.length > 0 && <MultipleSelect
+                selectionOptions={uniqueInstances}
+                onChange={handleInstanceChange}
+                defaultValue={selectedInstances}>
+            </MultipleSelect>}
+
+            {processedData.length > 0 && <ScatterDisplay data={processedData} instances={selectedInstances}
+                                                         selectAxes={selectedAxes}/>}
+
+            <p>Select Axes to display</p>
 
             <AxisSelect selectedAxes={selectedAxes} availableAxes={availableAxes}
                         onAxisChange={onAxisChange}></AxisSelect>

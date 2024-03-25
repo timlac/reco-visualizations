@@ -1,19 +1,24 @@
 import React from 'react';
 import {Select} from 'antd';
 
-export const EmotionSelect = ({emotions, onEmotionChange}) => {
+export const MultipleSelect = ({selectionOptions, onChange, defaultValue}) => {
+
+
+    if (defaultValue.length === selectionOptions.length){
+        defaultValue = []
+    }
 
     const options = [];
-    for (const emotion of emotions) {
+    for (const instance of selectionOptions) {
         options.push({
-            value: emotion,
-            label: emotion
+            value: instance,
+            label: instance
         });
     }
 
     const handleChange = (value) => {
         console.log(value);
-        onEmotionChange(value)
+        onChange(value)
     };
     return (
         <Select
@@ -24,6 +29,7 @@ export const EmotionSelect = ({emotions, onEmotionChange}) => {
             onChange={handleChange}
             tokenSeparators={[',']}
             options={options}
+            value={defaultValue}
         />
     );
 }
